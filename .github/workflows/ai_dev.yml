@@ -96,6 +96,33 @@ jobs:
           # Debug: print the first few lines to verify JSON started
           head -n 5 solution.json
 
+      - name: Validate Agent Output
+        if: steps.pick_task.outputs.has_task == 'true'
+        run: |
+          # Check if solution.json exists
+          if [ ! -f solution.json ]; then
+            echo "ERROR: solution.json was not created by the agent!"
+            exit 1
+          fi
+
+          # Validate it's valid JSON
+          if ! jq empty solution.json 2>/dev/null; then
+            echo "ERROR: solution.json is not valid JSON!"
+            echo "Contents:"
+            cat solution.json
+            exit 1
+          fi
+
+          # Check required fields
+          for field in branch_name commit_message pr_title pr_body files; do
+            if ! jq -e ".$field" solution.json > /dev/null; then
+              echo "ERROR: Missing required field '$field' in solution.json"
+              exit 1
+            fi
+          done
+
+          echo "✓ solution.json is valid and contains all required fields"
+
       - name: Apply Changes & Create PR
         if: steps.pick_task.outputs.has_task == 'true'
         env:

@@ -1,46 +1,87 @@
 import os
 import sys
+import json
+import traceback
 from openai import OpenAI
 
-# 1. Setup OpenRouter Client
-# We use the standard OpenAI library but point it to OpenRouter
+# Setup OpenRouter/OpenAI client
+api_key = os.environ.get("OPENROUTER_API_KEY")
+if not api_key:
+    print("Error: OPENROUTER_API_KEY not set")
+    sys.exit(1)
+
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    api_key=api_key,
 )
 
-# 2. Load the "Brain" (System Prompt)
-with open(".github/prompts/coder_agent.txt", "r") as f:
-    system_prompt = f.read()
+# Load the system prompt
+try:
+    with open(".github/prompts/coder_agent.txt", "r") as f:
+        system_prompt = f.read()
+except Exception as e:
+    print(f"Error reading system prompt: {e}")
+    sys.exit(1)
 
-# 3. Load the Task
+# Load the Task
 task_payload = os.environ.get("TASK_PAYLOAD")
 if not task_payload:
     print("Error: No TASK_PAYLOAD provided")
     sys.exit(1)
 
-# 4. Call the Model via OpenRouter
-# Note: "anthropic/claude-3.5-sonnet" is the OpenRouter ID for the model we want.
-response = client.chat.completions.create(
-    model="anthropic/claude-3.5-sonnet", # Or "deepseek/deepseek-chat"
-    messages=[
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": task_payload},
-        # Prefill only works if the specific provider/model supports it via OpenRouter.
-        # Claude supports it, but via the standard 'assistant' role in history.
-        {"role": "assistant", "content": "{"} 
-    ],
-    temperature=0, # Strict
-    # OpenRouter Specific: Ensure we don't pay for a runaway loop
-    max_tokens=4096, 
-    extra_body={
-        "transforms": ["middle-out"], # Optional OpenRouter optimization
-        "route": "fallback"           # Try primary, then cheaper providers
-    }
-)
+# Call the model
+try:
+    response = client.chat.completions.create(
+        model="anthropic/claude-3.5-sonnet",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": task_payload},
+        ],
+        temperature=0,
+        max_tokens=4096,
+        extra_body={
+            "transforms": ["middle-out"],
+            "route": "fallback",
+        },
+    )
+except Exception:
+    print("Model call failed:")
+    traceback.print_exc()
+    sys.exit(2)
 
-# 5. Output the result
-# We re-attach the brace we prefilled
-raw_content = "{" + response.choices[0].message.content
-print(raw_content)
+# Extract content
+try:
+    content = response.choices[0].message.content
+except Exception:
+    # Try alternate attribute access if library shaped differently
+    try:
+        content = response.choices[0]['message']['content']
+    except Exception:
+        print("Unexpected response structure:")
+        print(response)
+        sys.exit(3)
 
+# Normalize text to JSON blob
+text = content.strip()
+# If the assistant returned extra text, try to find the first '{'
+first_brace = text.find('{')
+if first_brace != -1:
+    json_text = text[first_brace:]
+else:
+    json_text = text
+
+# Validate JSON
+try:
+    parsed = json.loads(json_text)
+except Exception:
+    print("Failed to parse model output as JSON. Raw output below:")
+    print(text)
+    sys.exit(4)
+
+# Write solution.json
+out_path = "solution.json"
+with open(out_path, "w") as f:
+    json.dump(parsed, f, indent=2)
+
+print(f"Wrote {out_path}")
+print(json.dumps(parsed)[:1000])
