@@ -150,18 +150,21 @@ jobs:
           # 3. Create Branch
           git checkout -b "$BRANCH"
 
-          # 4. Write Files (Loop through JSON array)
-          jq -c '.files[]' solution.json | while read i; do
-            PATH=$(echo "$i" | jq -r '.path')
+          # 4. Write Files (Loop through JSON array by index)
+          FILES_COUNT=$(jq '.files | length' solution.json)
+          for i in $(seq 0 $((FILES_COUNT - 1))); do
+            PATH=$(jq -r ".files[$i].path" solution.json)
+            CONTENT=$(jq -r ".files[$i].content" solution.json)
             
             # Ensure directory exists
             mkdir -p "$(dirname "$PATH")"
             
             # Write content to file
-            echo "$i" | jq -r '.content' > "$PATH"
+            printf '%s' "$CONTENT" > "$PATH"
             
             # Stage file
             git add "$PATH"
+            echo "✓ Added $PATH"
           done
 
           # 5. Commit and Push
