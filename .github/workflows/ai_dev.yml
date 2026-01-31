@@ -53,7 +53,11 @@ jobs:
 
           echo "Found Issue #$ISSUE_NUMBER: $ISSUE_TITLE"
           
-          # 4. Claim the issue (Label: ai:in-progress)
+          # 4. Ensure the 'ai:in-progress' label exists, then claim the issue
+          if ! gh label list --limit 100 --json name | jq -r '.[].name' | grep -xq "ai:in-progress"; then
+            gh label create "ai:in-progress" --color 1D76DB --description "In progress (claimed by AI)"
+          fi
+
           gh issue edit "$ISSUE_NUMBER" --add-label "ai:in-progress" --remove-label "ai:todo"
           
           # 5. Export variables for next steps

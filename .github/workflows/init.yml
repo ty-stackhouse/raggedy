@@ -43,7 +43,7 @@ jobs:
         run: |
           # Check if pyproject.toml already exists
           if [ ! -f pyproject.toml ]; then
-            # Dynamically set package name to match the new repo name
+            # Dynamically set package name to match the new repo nagime
             uv init --name "${{ github.event.repository.name }}"
             
             git add .
