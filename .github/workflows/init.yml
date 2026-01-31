@@ -1,0 +1,23 @@
+name: Initialize UV
+on: workflow_dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  init-uv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Initialize
+        run: |
+          # Dynamically set package name to match the new repo name
+          uv init --name "${{ github.event.repository.name }}"
+          
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add .
+          git commit -m "Initialize ${{ github.event.repository.name }} with uv"
+          git push
