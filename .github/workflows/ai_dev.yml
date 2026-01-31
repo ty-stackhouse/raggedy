@@ -90,11 +90,17 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           TASK_PAYLOAD: ${{ steps.pick_task.outputs.task_prompt }}
         run: |
-          # Runs your script which calls OpenRouter -> outputs solution.json
-          python .github/scripts/run_agent.py > solution.json
+          # Runs the agent script which writes solution.json directly
+          python .github/scripts/run_agent.py
           
-          # Debug: print the first few lines to verify JSON started
-          head -n 5 solution.json
+          # Verify the file was created and show a sample
+          if [ -f solution.json ]; then
+            echo "✓ solution.json created successfully"
+            head -c 200 solution.json && echo ""
+          else
+            echo "ERROR: solution.json was not created!"
+            exit 1
+          fi
 
       - name: Validate Agent Output
         if: steps.pick_task.outputs.has_task == 'true'

@@ -83,5 +83,7 @@ out_path = "solution.json"
 with open(out_path, "w") as f:
     json.dump(parsed, f, indent=2)
 
-print(f"Wrote {out_path}")
-print(json.dumps(parsed)[:1000])
+# Log to stderr so it shows in workflow but doesn't pollute solution.json
+import sys as _sys
+print(f"✓ Wrote {out_path}", file=_sys.stderr)
+print(json.dumps(parsed)[:1000], file=_sys.stderr)
