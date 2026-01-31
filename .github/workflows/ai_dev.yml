@@ -31,6 +31,11 @@ jobs:
       - name: Install OpenAI Library
         run: pip install openai
 
+      - name: Install jq (used for JSON parsing)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
       - name: Pick a Task (Oldest 'ai:todo')
         id: pick_task
         env:
