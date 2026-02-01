@@ -1,54 +1,34 @@
-name: Initialize UV
-on: workflow_dispatch
+name: Sync Dependencies
+on:
+  push:
+    paths:
+      - 'pyproject.toml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  init-uv:
+  sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v5
 
-      - name: Configure Git Author
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate Requirements
         run: |
-          # 1. Get the user's public details via GitHub CLI
-          # We use || true to prevent failure if the API call hiccups
-          USER_INFO=$(gh api "users/${{ github.actor }}" || echo "{}")
-          
-          # 2. Extract name (fallback to username if real name is missing)
-          USER_NAME=$(echo "$USER_INFO" | jq -r '.name // "${{ github.actor }}"')
-          
-          # 3. Extract email or construct the specific GitHub noreply address
-          # Format: ID+USERNAME@users.noreply.github.com
-          USER_EMAIL=$(echo "$USER_INFO" | jq -r '.email // empty')
-          
-          if [ -z "$USER_EMAIL" ] || [ "$USER_EMAIL" = "null" ]; then
-            USER_ID="${{ github.event.sender.id }}"
-            USER_LOGIN="${{ github.actor }}"
-            USER_EMAIL="${USER_ID}+${USER_LOGIN}@users.noreply.github.com"
-          fi
+          # Compile the [project] dependencies into requirements.txt
+          uv pip compile pyproject.toml -o requirements.txt
 
-          echo "Configuring git as: $USER_NAME <$USER_EMAIL>"
-          
-          git config --global user.name "$USER_NAME"
-          git config --global user.email "$USER_EMAIL"
-
-      - name: Initialize
+      - name: Commit Changes
         run: |
-          # Check if pyproject.toml already exists
-          if [ ! -f pyproject.toml ]; then
-            # Dynamically set package name to match the new repo
-            uv init --name "${{ github.event.repository.name }}"
-            
-            git add .
-            git commit -m "Initialize ${{ github.event.repository.name }} with uv"
-            git push
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add requirements.txt
+          
+          if git diff --staged --quiet; then
+            echo "✅ Synced."
           else
-            echo "Project already initialized. Skipping uv init."
+            git commit -m "chore: sync requirements.txt"
+            git push
           fi
