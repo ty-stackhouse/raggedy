@@ -1,4 +1,4 @@
-name: Initialize UV & Requirements
+name: Initialize UV
 on: workflow_dispatch
 
 permissions:
@@ -9,55 +9,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v5
 
-      - name: Configure Git Author
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Git
         run: |
-          USER_INFO=$(gh api "users/${{ github.actor }}" || echo "{}")
-          USER_NAME=$(echo "$USER_INFO" | jq -r '.name // "${{ github.actor }}"')
-          USER_EMAIL=$(echo "$USER_INFO" | jq -r '.email // empty')
-          
-          if [ -z "$USER_EMAIL" ] || [ "$USER_EMAIL" = "null" ]; then
-            USER_ID="${{ github.event.sender.id }}"
-            USER_LOGIN="${{ github.actor }}"
-            USER_EMAIL="${USER_ID}+${USER_LOGIN}@users.noreply.github.com"
-          fi
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          git config --global user.name "$USER_NAME"
-          git config --global user.email "$USER_EMAIL"
-
-      - name: Initialize & Compile Requirements
+      - name: Initialize Project
         run: |
-          # 1. Initialize if missing
+          # If no config exists, write the CLEANEST possible one directly.
           if [ ! -f pyproject.toml ]; then
-            echo "Creating new pyproject.toml..."
-            # Use --app so it doesn't create a package structure, just a project
-            uv init --app --name "${{ github.event.repository.name }}"
-            
-            # Add Streamlit default so the requirements.txt isn't empty
-            uv add streamlit
-            git add pyproject.toml
+            echo "Creating clean pyproject.toml..."
+            cat > pyproject.toml <<EOF
+[project]
+name = "rag-app"
+version = "0.1.0"
+description = "Streamlit RAG App"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit",
+    "langchain",
+    "langchain-openai",
+    "langchain-community",
+    "faiss-cpu",
+    "tiktoken",
+    "PyGithub",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = []
+EOF
           fi
 
-          # 2. Always Ensure uv.lock is fresh
-          echo "Syncing lockfile..."
+      - name: Generate Artifacts
+        run: |
+          # 1. Create the lockfile (Elegant because config is now perfect)
           uv lock
-          git add uv.lock
+          
+          # 2. Create requirements.txt (For Streamlit Cloud compatibility)
+          uv export --no-hashes --format requirements-txt > requirements.txt
 
-          # 3. COMPILE requirements.txt for Streamlit Cloud
-          # This is the magic step that makes deployment work
-          echo "Compiling requirements.txt..."
-          uv pip compile pyproject.toml -o requirements.txt
-          git add requirements.txt
-
-          # 4. Commit and Push if there are changes
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Initialize uv and update requirements.txt"
-            git push
-          fi
+      - name: Commit
+        run: |
+          git add pyproject.toml uv.lock requirements.txt
+          git commit -m "Initialize clean uv project" || echo "Nothing to commit"
+          git push
