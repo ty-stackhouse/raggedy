@@ -67,6 +67,9 @@ jobs:
             gh label create "ai:in-progress" --color 1D76DB --description "In progress (claimed by AI)"
           fi
 
+          # Export which label we selected for debugging/conditional logic
+          echo "selected_label=$SELECTED_LABEL" >> $GITHUB_OUTPUT
+
           # If we picked an 'ai:todo' item, claim it by adding ai:in-progress and removing ai:todo.
           if [ "$SELECTED_LABEL" = "ai:todo" ]; then
             gh issue edit "$ISSUE_NUMBER" --add-label "ai:in-progress" --remove-label "ai:todo"
