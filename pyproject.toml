@@ -1,13 +1,22 @@
 [project]
 name = "rag-app"
 version = "0.1.0"
-description = "RAG Application with GitHub Integration"
-requires-python = ">=3.11,<3.12"
-package-mode = false 
+description = "RAG Application"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit",
+    "langchain",
+    "langchain-openai",
+    "faiss-cpu",
+    "PyGithub",
+
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.ruff]
-line-length = 100
+
+[tool.hatch.build.targets.wheel]
+packages = []
