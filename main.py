@@ -25,7 +25,7 @@ if prompt := st.chat_input("What is up?"):
         st.markdown(prompt)
 
     logger.info(f"Calling external API: POST https://openrouter.ai/api/v1/chat/completions")
-    logger.info(f"Request: model=google/gemini-1.5-flash, messages={len(st.session_state.messages)}")
+    logger.info(f"Request: model=google/gemini-2.0-flash-001, messages={len(st.session_state.messages)}")
 
     # Prepare API request
     api_key = st.secrets.get("OPENROUTER_API_KEY")
@@ -36,7 +36,7 @@ if prompt := st.chat_input("What is up?"):
         "X-Title": st.secrets.get("APP_TITLE", "Raggedy"),
     }
     payload = {
-        "model": "google/gemini-1.5-flash",
+        "model": "google/gemini-2.0-flash-001",
         "messages": [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
         "max_tokens": 1024,
     }
