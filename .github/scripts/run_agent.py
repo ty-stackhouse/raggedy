@@ -69,6 +69,13 @@ except Exception:
 
 # Normalize text to JSON blob
 text = content.strip()
+
+# Remove markdown code block markers (```json ... ``` or just ``` ... ```)
+import re
+# Strip opening/closing code block markers with optional language identifier
+text = re.sub(r'^```[a-zA-Z0-9]*\s*', '', text)
+text = re.sub(r'\s*```$', '', text)
+
 # If the assistant returned extra text, try to find the first '{'
 first_brace = text.find('{')
 if first_brace != -1:
