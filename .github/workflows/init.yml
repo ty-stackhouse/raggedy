@@ -15,23 +15,25 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
 
-      - name: Generate Requirements
+      - name: Generate Artifacts
         run: |
-          # Use 'uv pip compile' which natively understands [tool.poetry]
-          # This bypasses the need for a [project] table or uv.lock
-          uv pip compile pyproject.toml -o requirements.txt
+          # Now that we use [project], uv lock works natively!
+          uv lock
+          
+          # And we can export to requirements.txt for Streamlit
+          uv export --no-hashes --format requirements-txt > requirements.txt
 
       - name: Commit Changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          git add requirements.txt
+          git add uv.lock requirements.txt
           
           if git diff --staged --quiet; then
-            echo "✅ Requirements are already in sync."
+            echo "✅ Dependencies are synced."
           else
-            git commit -m "chore: update requirements.txt from pyproject.toml"
+            git commit -m "chore: sync uv.lock and requirements.txt"
             git push
-            echo "🚀 Pushed updated requirements.txt."
+            echo "🚀 Pushed updates."
           fi
