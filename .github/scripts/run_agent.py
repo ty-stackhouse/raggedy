@@ -32,7 +32,13 @@ if not task_payload:
 # Call the model
 try:
     response = client.chat.completions.create(
-        model="anthropic/claude-3.5-sonnet",
+        model="minimax/minimax-m2.1",          # $0.27/$1.10 - Best Value: Ultra-cheap, great for high-volume CI/CD
+        # model="z-ai/glm-4.7",                # $0.40/$1.50 - Balanced: Good general performance, low cost fallback
+        # model="moonshotai/kimi-k2.5",        # $0.50/$2.80 - Visual: Best for tasks involving screenshots or UI
+        # model="openai/gpt-5.2-codex",        # $1.75/$14.00 - Specialized: Optimized for complex refactoring/agents
+        # model="google/gemini-3-pro-preview", # $2.00/$12.00 - Frontier: Massive context window for repo-wide analysis
+        # model="anthropic/claude-3.5-sonnet", # $3.00/$15.00 - Gold Standard: Highest accuracy for interactive/difficult tasks
+
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": task_payload},
