@@ -48,10 +48,13 @@ def load_knowledge_base() -> FAISS:
             logger.warning("No markdown files found in repository")
             return None
 
-        # Create embeddings and vector store
-        logger.info("Creating embeddings with OpenAI...")
+        # Create embeddings using OpenRouter
+        logger.info("Creating embeddings via OpenRouter...")
+        openrouter_api_key = st.secrets.get("OPENROUTER_API_KEY")
         embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-small",
+            model="openai/text-embedding-3-small",
+            openai_api_key=openrouter_api_key,
+            openai_api_base="https://openrouter.ai/api/v1",
             headers={
                 "HTTP-Referer": st.secrets.get("APP_URL", "localhost"),
                 "X-Title": st.secrets.get("APP_TITLE", "Raggedy")
@@ -94,6 +97,14 @@ def search_knowledge_base(vectorstore: FAISS, query: str, k: int = 5) -> list:
 
 st.title("Raggedy")
 
+# Load knowledge base at app startup
+logger.info("Loading knowledge base at startup...")
+vectorstore = load_knowledge_base()
+if vectorstore:
+    logger.info("Knowledge base loaded successfully at startup")
+else:
+    logger.warning("Knowledge base failed to load at startup")
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -107,10 +118,8 @@ if prompt := st.chat_input("What is up?"):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Load knowledge base and search for relevant context
-    logger.info("Loading knowledge base...")
-    vectorstore = load_knowledge_base()
-
+    # Search knowledge base for relevant context
+    logger.info("Searching knowledge base...")
     context = ""
     if vectorstore:
         docs = search_knowledge_base(vectorstore, prompt, k=5)
