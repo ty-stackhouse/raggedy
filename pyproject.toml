@@ -18,5 +18,9 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# Corrected Config Section
+[tool.hatch.build]
+dev-mode-dirs = []
+
 [tool.hatch.build.targets.wheel]
 packages = []
