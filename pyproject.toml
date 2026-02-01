@@ -3,6 +3,7 @@ name = "rag-app"
 version = "0.1.0"
 description = "RAG Application with GitHub Integration"
 requires-python = ">=3.11,<3.12"
+package-mode = false 
 
 [build-system]
 requires = ["hatchling"]

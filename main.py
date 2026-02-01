@@ -97,10 +97,10 @@ def main():
         
         # Generate response
         llm = ChatOpenAI(
-            model="openai/gpt-4-turbo",
+            model=st.secrets.get("LLM_MODEL", "google/gemini-1.5-flash"),
             headers={
-                "HTTP-Referer": st.secrets.get("APP_URL", "localhost"),
-                "X-Title": st.secrets.get("APP_TITLE", "RAG Chat")
+            "HTTP-Referer": st.secrets.get("APP_URL", "localhost"),
+            "X-Title": st.secrets.get("APP_TITLE", "RAG Chat")
             }
         )
         
