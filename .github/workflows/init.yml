@@ -46,9 +46,21 @@ jobs:
             # Dynamically set package name to match the new repo
             uv init --name "${{ github.event.repository.name }}"
             
+            # --- ADDED: Generate the lockfile immediately ---
+            uv lock
+            
             git add .
             git commit -m "Initialize ${{ github.event.repository.name }} with uv"
             git push
           else
             echo "Project already initialized. Skipping uv init."
+            
+            # Optional: Check if uv.lock is missing even if pyproject.toml exists
+            if [ ! -f uv.lock ]; then
+                echo "Missing uv.lock. Generating one now..."
+                uv lock
+                git add uv.lock
+                git commit -m "Generate missing uv.lock"
+                git push
+            fi
           fi
