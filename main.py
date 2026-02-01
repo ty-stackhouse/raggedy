@@ -6,7 +6,7 @@ from github import Github
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_openai import ChatOpenAI
-from langchain.schema import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 # App configuration from secrets
 st.set_page_config(page_title=st.secrets.get("APP_TITLE", "RAG Chat"), layout="wide")
