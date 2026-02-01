@@ -39,26 +39,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # 1. Prefer existing 'ai:in-progress' issues, otherwise pick from 'ai:todo'
-          IN_JSON=$(gh issue list --label "ai:in-progress" --state open --limit 1 --json number,title,body || echo "[]")
-          if [ "$IN_JSON" != "[]" ]; then
-            TASK_JSON="$IN_JSON"
+          IN_NUM=$(gh issue list --label "ai:in-progress" --state open --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$IN_NUM" ]; then
+            ISSUE_NUMBER="$IN_NUM"
             SELECTED_LABEL="ai:in-progress"
           else
-            TASK_JSON=$(gh issue list --label "ai:todo" --state open --limit 1 --json number,title,body || echo "[]")
+            TODO_NUM=$(gh issue list --label "ai:todo" --state open --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+            if [ -z "$TODO_NUM" ]; then
+              echo "No tasks found. Exiting."
+              echo "has_task=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            ISSUE_NUMBER="$TODO_NUM"
             SELECTED_LABEL="ai:todo"
           fi
 
-          # 2. Check if we found anything
-          if [ "$TASK_JSON" = "[]" ]; then
-            echo "No tasks found. Exiting."
-            echo "has_task=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # 3. Extract details
-          ISSUE_NUMBER=$(echo "$TASK_JSON" | jq -r '.[0].number')
-          ISSUE_TITLE=$(echo "$TASK_JSON" | jq -r '.[0].title')
-          ISSUE_BODY=$(echo "$TASK_JSON" | jq -r '.[0].body')
+          # 2. Fetch issue details (title/body) via gh to avoid jq dependency
+          ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --json title --jq '.title' 2>/dev/null || echo "")
+          ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --json body --jq '.body' 2>/dev/null || echo "")
 
           echo "Found Issue #$ISSUE_NUMBER (label: $SELECTED_LABEL): $ISSUE_TITLE"
 
