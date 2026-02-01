@@ -38,9 +38,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 1. Fetch oldest open issue labeled 'ai:todo'
-          TASK_JSON=$(gh issue list --label "ai:todo" --state open --limit 1 --json number,title,body)
-          
+          # 1. Prefer existing 'ai:in-progress' issues, otherwise pick from 'ai:todo'
+          IN_JSON=$(gh issue list --label "ai:in-progress" --state open --limit 1 --json number,title,body || echo "[]")
+          if [ "$IN_JSON" != "[]" ]; then
+            TASK_JSON="$IN_JSON"
+            SELECTED_LABEL="ai:in-progress"
+          else
+            TASK_JSON=$(gh issue list --label "ai:todo" --state open --limit 1 --json number,title,body || echo "[]")
+            SELECTED_LABEL="ai:todo"
+          fi
+
           # 2. Check if we found anything
           if [ "$TASK_JSON" = "[]" ]; then
             echo "No tasks found. Exiting."
@@ -49,18 +56,24 @@ jobs:
           fi
 
           # 3. Extract details
-          ISSUE_NUMBER=$(echo $TASK_JSON | jq -r '.[0].number')
-          ISSUE_TITLE=$(echo $TASK_JSON | jq -r '.[0].title')
-          ISSUE_BODY=$(echo $TASK_JSON | jq -r '.[0].body')
+          ISSUE_NUMBER=$(echo "$TASK_JSON" | jq -r '.[0].number')
+          ISSUE_TITLE=$(echo "$TASK_JSON" | jq -r '.[0].title')
+          ISSUE_BODY=$(echo "$TASK_JSON" | jq -r '.[0].body')
 
-          echo "Found Issue #$ISSUE_NUMBER: $ISSUE_TITLE"
-          
-          # 4. Ensure the 'ai:in-progress' label exists, then claim the issue
+          echo "Found Issue #$ISSUE_NUMBER (label: $SELECTED_LABEL): $ISSUE_TITLE"
+
+          # 4. Ensure the 'ai:in-progress' label exists (create if missing)
           if ! gh label list --limit 100 --json name | jq -r '.[].name' | grep -xq "ai:in-progress"; then
             gh label create "ai:in-progress" --color 1D76DB --description "In progress (claimed by AI)"
           fi
 
-          gh issue edit "$ISSUE_NUMBER" --add-label "ai:in-progress" --remove-label "ai:todo"
+          # If we picked an 'ai:todo' item, claim it by adding ai:in-progress and removing ai:todo.
+          if [ "$SELECTED_LABEL" = "ai:todo" ]; then
+            gh issue edit "$ISSUE_NUMBER" --add-label "ai:in-progress" --remove-label "ai:todo"
+          else
+            # Ensure it's tagged as in-progress (idempotent)
+            gh issue edit "$ISSUE_NUMBER" --add-label "ai:in-progress"
+          fi
           
           # 5. Export variables for next steps
           echo "has_task=true" >> $GITHUB_OUTPUT
