@@ -1,62 +1,44 @@
-name: Initialize UV
-on: workflow_dispatch
+name: Sync Dependencies
+on:
+  push:
+    paths:
+      - 'pyproject.toml'  # Only runs when you change config
+  workflow_dispatch:      # Or when you click the button
 
 permissions:
   contents: write
 
 jobs:
-  init-uv:
+  sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      # Install uv (fastest tool available)
       - uses: astral-sh/setup-uv@v5
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Initialize Project
-        run: |
-          # If no config exists, write the CLEANEST possible one directly.
-          if [ ! -f pyproject.toml ]; then
-            echo "Creating clean pyproject.toml..."
-            cat > pyproject.toml <<EOF
-[project]
-name = "rag-app"
-version = "0.1.0"
-description = "Streamlit RAG App"
-readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "streamlit",
-    "langchain",
-    "langchain-openai",
-    "langchain-community",
-    "faiss-cpu",
-    "tiktoken",
-    "PyGithub",
-]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = []
-EOF
-          fi
 
       - name: Generate Artifacts
         run: |
-          # 1. Create the lockfile (Elegant because config is now perfect)
+          # 1. Create/Update Lockfile
+          # This is idempotent: if nothing changed, it does nothing.
           uv lock
-          
-          # 2. Create requirements.txt (For Streamlit Cloud compatibility)
+
+          # 2. Export to requirements.txt (Standard format for Streamlit Cloud)
+          # We use this because it's universally foolproof.
           uv export --no-hashes --format requirements-txt > requirements.txt
 
-      - name: Commit
+      - name: Commit Changes
         run: |
-          git add pyproject.toml uv.lock requirements.txt
-          git commit -m "Initialize clean uv project" || echo "Nothing to commit"
-          git push
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add uv.lock requirements.txt
+          
+          # Only commit if something actually changed
+          if git diff --staged --quiet; then
+            echo "✅ Dependencies are already in sync."
+          else
+            git commit -m "chore: sync uv.lock and requirements.txt"
+            git push
+            echo "🚀 Pushed updated artifacts."
+          fi
