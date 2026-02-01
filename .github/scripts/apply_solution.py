@@ -62,7 +62,7 @@ def main():
         if issue_num:
             body = f"{pr_body}\n\nCloses #{issue_num}"
 
-        run([
+        result = run([
             "gh", "pr", "create",
             "--title", pr_title,
             "--body", body,
@@ -70,7 +70,21 @@ def main():
             "--head", branch,
         ])
 
-        print("Done: PR created")
+        # Get PR number from output
+        pr_url = result.stdout.strip() if result.stdout else ""
+        pr_num = pr_url.split("/")[-1] if pr_url else None
+
+        if pr_num:
+            print(f"Created PR #{pr_num}, auto-merging...")
+
+            # Auto-merge the PR
+            run([
+                "gh", "pr", "merge", pr_num,
+                "--admin", "--delete-branch"
+            ])
+            print(f"Done: PR #{pr_num} merged and branch deleted")
+        else:
+            print("Done: PR created (could not extract PR number for auto-merge)")
 
     except subprocess.CalledProcessError as e:
         print("Command failed:", e)
