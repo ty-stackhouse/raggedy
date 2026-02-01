@@ -39,12 +39,28 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # 1. Prefer existing 'ai:in-progress' issues, otherwise pick from 'ai:todo'
+          echo "--- DEBUG: gh version & auth ---"
+          gh --version || true
+          gh auth status || true
+
+          echo "--- DEBUG: list labels available (first 200 chars) ---"
+          gh label list --limit 100 --json name | head -c 200 || true
+
+          echo "--- DEBUG: query for ai:in-progress raw output ---"
+          IN_JSON_RAW=$(gh issue list --label "ai:in-progress" --state open --limit 1 --json number,title,body 2>/dev/null || echo "[]")
+          echo "IN_JSON_RAW: ${IN_JSON_RAW}" >/dev/stderr
           IN_NUM=$(gh issue list --label "ai:in-progress" --state open --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+          echo "IN_NUM: ${IN_NUM}" >/dev/stderr
+
           if [ -n "$IN_NUM" ]; then
             ISSUE_NUMBER="$IN_NUM"
             SELECTED_LABEL="ai:in-progress"
           else
+            echo "--- DEBUG: no in-progress found, query ai:todo raw output ---" >/dev/stderr
+            TODO_JSON_RAW=$(gh issue list --label "ai:todo" --state open --limit 1 --json number,title,body 2>/dev/null || echo "[]")
+            echo "TODO_JSON_RAW: ${TODO_JSON_RAW}" >/dev/stderr
             TODO_NUM=$(gh issue list --label "ai:todo" --state open --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+            echo "TODO_NUM: ${TODO_NUM}" >/dev/stderr
             if [ -z "$TODO_NUM" ]; then
               echo "No tasks found. Exiting."
               echo "has_task=false" >> $GITHUB_OUTPUT
