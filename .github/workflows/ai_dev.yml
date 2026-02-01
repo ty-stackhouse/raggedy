@@ -31,10 +31,7 @@ jobs:
       - name: Install OpenAI Library
         run: pip install openai
 
-      - name: Install jq (used for JSON parsing)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
+
 
       - name: Pick a Task (Oldest 'ai:todo')
         id: pick_task
@@ -140,46 +137,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUM: ${{ steps.pick_task.outputs.issue_number }}
         run: |
-          # 1. Parse JSON Plan
-          BRANCH=$(jq -r '.branch_name' solution.json)
-          MSG=$(jq -r '.commit_message' solution.json)
-          TITLE=$(jq -r '.pr_title' solution.json)
-          BODY=$(jq -r '.pr_body' solution.json)
-
-          echo "Preparing branch: $BRANCH"
-
-          # 2. Setup Git Identity
-          git config user.name "AI Agent"
-          git config user.email "ai-agent@users.noreply.github.com"
-
-          # 3. Create Branch
-          git checkout -b "$BRANCH"
-
-          # 4. Write Files (Loop through JSON array by index)
-          FILES_COUNT=$(jq '.files | length' solution.json)
-          for i in $(seq 0 $((FILES_COUNT - 1))); do
-            PATH=$(jq -r ".files[$i].path" solution.json)
-            CONTENT=$(jq -r ".files[$i].content" solution.json)
-            
-            # Ensure directory exists
-            mkdir -p "$(dirname "$PATH")"
-            
-            # Write content to file
-            printf '%s' "$CONTENT" > "$PATH"
-            
-            # Stage file
-            git add "$PATH"
-            echo "✓ Added $PATH"
-          done
-
-          # 5. Commit and Push
-          git commit -m "$MSG"
-          git push origin "$BRANCH"
-
-          # 6. Open PR
-          gh pr create \
-            --title "$TITLE" \
-            --body "$BODY Closes #$ISSUE_NUM" \
-            --base main \
-            --head "$BRANCH"
+          # Use external script to apply solution (parsing and file writes)
+          python .github/scripts/apply_solution.py solution.json "$ISSUE_NUM"
 
