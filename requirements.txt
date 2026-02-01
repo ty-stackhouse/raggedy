@@ -93,6 +93,7 @@ langchain-community==0.4.1
     # via rag-app (pyproject.toml)
 langchain-core==1.2.7
     # via
+    #   rag-app (pyproject.toml)
     #   langchain
     #   langchain-classic
     #   langchain-community
