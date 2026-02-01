@@ -1,26 +1,20 @@
-[project]
+[tool.poetry]
 name = "rag-app"
 version = "0.1.0"
 description = "RAG Application"
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "streamlit>=1.35.0",
-    "langchain",
-    "langchain-openai",
-    "langchain-community",
-    "faiss-cpu",
-    "tiktoken",
-    "PyGithub",
-]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+streamlit = ">=1.35.0"
+langchain = "*"
+langchain-openai = "*"
+langchain-community = "*"
+faiss-cpu = "*"
+tiktoken = "*"
+PyGithub = "*"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-# Corrected Config Section
-[tool.hatch.build]
-dev-mode-dirs = []
-
-[tool.hatch.build.targets.wheel]
-packages = []
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
