@@ -1,13 +1,12 @@
 [tool.poetry]
 name = "rag-app"
 version = "0.1.0"
-description = "RAG Application"
-readme = "README.md"
+description = "RAG App"
 package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
-streamlit = ">=1.35.0"
+streamlit = "^1.35"
 langchain = "*"
 langchain-openai = "*"
 langchain-community = "*"
