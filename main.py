@@ -95,7 +95,7 @@ def search_knowledge_base(vectorstore: FAISS, query: str, k: int = 5) -> list:
         return []
 
 
-st.title("Raggedy")
+st.title(st.secrets.get("APP_NAME", "Raggedy"))
 
 # Load knowledge base at app startup
 logger.info("Loading knowledge base at startup...")
