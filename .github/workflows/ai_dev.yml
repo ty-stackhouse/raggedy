@@ -1,11 +1,9 @@
 name: AI Developer (Headless)
 
 on:
-  schedule:
-    # Runs at 14:00 UTC (8:00 AM CST) every day
-    - cron: "0 14 * * *"
+  issues:
+    types: [opened, edited]
   workflow_dispatch:
-    # Allows you to click "Run workflow" manually from GitHub Actions tab
 
 permissions:
   contents: write       # Needed to commit code
